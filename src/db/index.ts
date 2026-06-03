@@ -1,9 +1,8 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
-// We use the Supavisor connection pooler URL for IPv4 compatibility on Vercel.
-// We must set prepare: false because transaction poolers don't support prepared statements.
-const connectionString = "postgresql://vyapar_user:Vyapar_Demo_123%21%40%23@aws-0-ap-south-1.pooler.supabase.com:6543/postgres";
+// We use the direct connection URL because Netlify natively supports IPv6.
+const connectionString = "postgresql://vyapar_user:Vyapar_Demo_123%21%40%23@db.dowlvvmlqsxlzrnccrvu.supabase.co:5432/postgres";
 
 const globalForDb = globalThis as typeof globalThis & {
   __postgresClient?: ReturnType<typeof postgres>;
