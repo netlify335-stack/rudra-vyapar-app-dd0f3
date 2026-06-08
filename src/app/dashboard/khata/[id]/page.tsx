@@ -7,6 +7,8 @@ import { getActiveStoreId } from "@/lib/session";
 import { formatINR, formatDate } from "@/lib/format";
 import { KhataAdd } from "./KhataAdd";
 import { RemindButton } from "./RemindButton";
+import { PartyActions } from "./PartyActions";
+import { KhataEntryRow } from "./KhataEntryRow";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +36,7 @@ export default async function KhataDetail({ params }: { params: Promise<{ id: st
               <h1 className="text-xl font-bold text-slate-950">{party.name}</h1>
               <div className="text-xs text-slate-500">{party.phone || "—"} {party.city ? `· ${party.city}` : ""}</div>
               {party.gstin && <div className="text-xs font-mono text-slate-600">GSTIN: {party.gstin}</div>}
+              <PartyActions party={party} />
             </div>
           </div>
           <div className="text-right">
@@ -58,20 +61,7 @@ export default async function KhataDetail({ params }: { params: Promise<{ id: st
         </div>
         <div className="divide-y divide-slate-100">
           {entries.map((e) => (
-            <div key={e.id} className="flex items-center justify-between gap-4 p-4">
-              <div className="flex items-center gap-3">
-                <div className={`grid h-9 w-9 place-items-center rounded-full text-base ${e.type === "credit" ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"}`}>
-                  {e.type === "credit" ? "↑" : "↓"}
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-slate-800">{e.type === "credit" ? "Gave on credit" : "Received payment"}</div>
-                  <div className="text-[11px] text-slate-500">{formatDate(e.entryDate)} · {e.notes || "—"}</div>
-                </div>
-              </div>
-              <div className={`text-base font-bold ${e.type === "credit" ? "text-rose-600" : "text-emerald-600"}`}>
-                {e.type === "credit" ? "+" : "−"} {formatINR(e.amount)}
-              </div>
-            </div>
+            <KhataEntryRow key={e.id} entry={e} />
           ))}
           {entries.length === 0 && <div className="p-8 text-center text-sm text-slate-400">No entries yet</div>}
         </div>

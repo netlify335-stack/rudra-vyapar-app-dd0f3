@@ -53,6 +53,7 @@ export default async function InvoiceDetail({ params }: { params: Promise<{ id: 
             <div className="mt-1 text-base font-semibold text-slate-900">{inv.partyName}</div>
             {inv.partyPhone && <div className="text-xs text-slate-600">{inv.partyPhone}</div>}
             {inv.partyGstin && <div className="text-xs text-slate-600">GSTIN: {inv.partyGstin}</div>}
+            {inv.partyAddress && <div className="mt-1 text-xs text-slate-600">{inv.partyAddress}</div>}
           </div>
           <div className="md:text-right">
             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Pay via UPI</div>

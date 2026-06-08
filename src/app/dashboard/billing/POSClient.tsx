@@ -15,7 +15,7 @@ type Product = {
   barcode: string | null;
 };
 
-type Customer = { id: string; name: string; phone: string | null; gstin: string | null };
+type Customer = { id: string; name: string; phone: string | null; gstin: string | null; address?: string | null };
 
 type CartLine = {
   productId: string;
@@ -35,6 +35,7 @@ export function POSClient({ products, customers, isPurchase = false, storeName }
   const [customerId, setCustomerId] = useState<string>("walkin");
   const [walkinName, setWalkinName] = useState("");
   const [walkinPhone, setWalkinPhone] = useState("");
+  const [walkinAddress, setWalkinAddress] = useState("");
   const [paymentMode, setPaymentMode] = useState<"cash" | "upi" | "card" | "credit">("cash");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -65,6 +66,10 @@ export function POSClient({ products, customers, isPurchase = false, storeName }
   }, [query, products]);
 
   function addProduct(p: Product) {
+    if (!isPurchase && p.currentStock <= 0) {
+      alert("Item is out of stock!");
+      return;
+    }
     setCart((c) => {
       const idx = c.findIndex((x) => x.productId === p.id);
       if (idx >= 0) {
@@ -135,6 +140,7 @@ export function POSClient({ products, customers, isPurchase = false, storeName }
           partyId,
           partyName,
           partyPhone,
+          partyAddress: customerId === "walkin" ? walkinAddress.trim() : (customers.find((c) => c.id === customerId)?.address ?? ""),
           paymentMode,
           notes,
           items: cart,
@@ -147,26 +153,25 @@ export function POSClient({ products, customers, isPurchase = false, storeName }
         setNotes("");
         setWalkinName("");
         setWalkinPhone("");
+        setWalkinAddress("");
         
         const amount = totals.total;
         const msg = encodeURIComponent(
           `Hi! Your invoice ${data.invoiceNo} for ${formatINR(amount)} from ${storeName} is ready. Thank you! 🙏`
         );
         
-        if (includePdf) {
-           window.print();
-        }
-
-        if (action === "print" && !includePdf) {
-          window.print();
+        if (action === "print" || includePdf) {
+          const newTab = window.open(`/dashboard/invoices/${data.invoiceId}`, "_blank");
+          if (!newTab) router.push(`/dashboard/invoices/${data.invoiceId}`);
         } else if (action === "whatsapp") {
           const waNum = partyPhone.replace(/[^0-9]/g, "").replace(/^91/, "");
           const waLink = waNum ? `https://wa.me/91${waNum}?text=${msg}` : `https://wa.me/?text=${msg}`;
-          window.open(waLink, "_blank");
+          const newTab = window.open(waLink, "_blank");
+          if (!newTab) window.location.href = waLink;
         } else if (action === "sms") {
           const smsNum = partyPhone.replace(/[^0-9]/g, "").replace(/^91/, "");
           const smsLink = `sms:${smsNum}?body=${msg}`;
-          window.open(smsLink, "_self");
+          window.location.href = smsLink;
         }
 
         router.refresh();
@@ -268,6 +273,12 @@ export function POSClient({ products, customers, isPurchase = false, storeName }
                 onChange={(e) => setWalkinPhone(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:bg-white"
               />
+              <input
+                placeholder="Address (optional)"
+                value={walkinAddress}
+                onChange={(e) => setWalkinAddress(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:bg-white"
+              />
             </div>
           )}
         </div>
@@ -297,10 +308,29 @@ export function POSClient({ products, customers, isPurchase = false, storeName }
                       min={1}
                       step="0.01"
                       value={it.quantity}
-                      onChange={(e) => updateLine(i, { quantity: Math.max(0.01, Number(e.target.value)) })}
+                      onChange={(e) => {
+                        let val = Math.max(0.01, Number(e.target.value));
+                        if (!isPurchase) {
+                          const p = products.find(p => p.id === it.productId);
+                          if (p && val > p.currentStock) {
+                            alert("Cannot exceed available stock!");
+                            val = p.currentStock;
+                          }
+                        }
+                        updateLine(i, { quantity: val });
+                      }}
                       className="w-14 border-x border-slate-200 px-1 py-1 text-center text-sm outline-none"
                     />
-                    <button onClick={() => updateLine(i, { quantity: it.quantity + 1 })} className="px-2 py-1 text-slate-600 hover:bg-slate-50">+</button>
+                    <button onClick={() => {
+                      if (!isPurchase) {
+                        const p = products.find(p => p.id === it.productId);
+                        if (p && it.quantity >= p.currentStock) {
+                          alert("Cannot exceed available stock!");
+                          return;
+                        }
+                      }
+                      updateLine(i, { quantity: it.quantity + 1 });
+                    }} className="px-2 py-1 text-slate-600 hover:bg-slate-50">+</button>
                   </div>
                   <input
                     type="number"
